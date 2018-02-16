@@ -1,0 +1,11 @@
+[files]
+prefix = mypf_
+
+[coinbase]
+key = COINBASE_API_KEY
+secret = COINBASE_API_SECRET
+
+[gdax]
+passphrase = GDAX_API_PASSPHRASE
+key = GDAX_API_KEY
+secret = GDAX_API_SECRET
