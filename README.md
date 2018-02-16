@@ -6,7 +6,7 @@ https://cointracking.info?ref=J533603
 
 CoinTracking is a phenomenal tool which I use daily, but it has some odd quirks when it comes to exchange imports--not to mention the fact that API-based imports require a paid account with them. No hard feelings on that front, and I actually have a paid account, but I've found the API imports lacking when they really don't need to be. For example, Coinbase and GDAX provide API-based methods to get all the data you could ever want, but CoinTracking doesn't seem to use it all. Alas.
 
-Furthermore, the CSV exports from many exchanges (when they are available at all) often leave out important information, or format the data very strangely, or take a ridiculous amount of effort to accomplish. YES, I'M LOOKING AT YOU, GDAX. Seriously, Like 50 clicks and 10 emails just to get all of the data for a common variety of trading pair transactions? Ugh.
+Furthermore, the CSV exports from many exchanges (when they are available at all) often leave out important information, or format the data very strangely, or take a ridiculous amount of effort to accomplish. YES, I'M LOOKING AT YOU, GDAX. Seriously, Like 50 clicks and 10 emails just to get all of the CSV data for a common variety of trading pair transactions? Ugh.
 
 However, it's not hard to work around these limitations by writing a "bridge" script, so that's what I've done. As a bonus, you can use the CSV data that this script exports in any way you choose, even if you don't use CoinTracking at all. It gives you an easy way to gather transaction details from multiple sources into a collection of files that all have exactly the same format, readable in Excel or Python or anything else that can handle comma-separated values.
 
@@ -73,9 +73,13 @@ The `[files]` section supports a single `prefix` key which controls the filename
 
 For Coinbase support, you need to supply the API key and secret values. You should create a dedicated API key for exporting data, and **ONLY GRANT READ PERMISSIONS.** The script does not need (and should not have access to) any other permissions. Once you generate the key from the **Settings -> API Access** area of your account, enter the key and secret values in their respective configuration entries.
 
+![Coinbase API key creation](https://raw.githubusercontent.com/jrowberg/crypto-export/master/screenshots/coinbase_api_key_read_only.png)
+
 #### [gdax]
 
 For GDAX support, you need to supply the API passphrase, key, and secret values. As with Coinbase, **do not grant anything other than VIEW permissions for this key since nothing else is needed.** You can create a new key under the **API** area of your GDAX account (icon/menu in the upper right corner of the website after logging in).
+
+![GDAX API key creation](https://raw.githubusercontent.com/jrowberg/crypto-export/master/screenshots/gdax_api_key_read_only.png)
 
 # Usage
 
@@ -106,7 +110,9 @@ optional arguments:
   -l, --local           Use locally stored cache files if present
 ```
 
-Most likely, you won't need any of the command line options unless you are using multiple configuration files for more than one portfolio. However, if you only want or need to export data from a subset of defined exchanges, you can either whitelist (include) or blacklist (exclude) specific exchanges. Currently supported options here are `coinbase` and `gdax`.
+Most likely, you won't need any of the command line options unless you are using multiple configuration files for more than one portfolio. However, if you only want or need to export data from a subset of defined exchanges, you can either whitelist (include) or blacklist (exclude) specific exchanges. Currently supported options here are `coinbase` and `gdax`. Here is part of an example run output from real accounts:
+
+![Running export](https://raw.githubusercontent.com/jrowberg/crypto-export/master/screenshots/running_export.png)
 
 If you **include** any exchanges, then anything *not* in the list will be excluded by default. If you **exclude** any exchanges, then the script will export from anything defined in the configuration file *except* what you specify for that option.
 
@@ -169,4 +175,4 @@ If this script saves you some headaches, feel free to register or upgrade your C
 
 These donations will help me pay off my mortgage as well as encourage further development of this and other handy tools.
 
-Happy investing! ...or speculation...
+Happy accounting!
