@@ -264,7 +264,7 @@ if 'coinbase' in queued_exchanges:
                                     row[2] = row[4] = row[6] = transaction['native_amount']['currency']
                                     row[5] = '%0.8f' % (float(t2['total']['amount']) - float(t2['subtotal']['amount'])),
                                     row[8] = "Deposit for %s %s buy from unexpected payment source" % (transaction['amount']['amount'], transaction['amount']['currency'])
-            elif transaction['type'] in ['exchange_deposit', 'exchange_withdrawal', 'fiat_deposit', 'fiat_withdrawal', 'order']:
+            elif transaction['type'] in ['pro_withdrawal', 'pro_deposit', 'exchange_deposit', 'exchange_withdrawal', 'fiat_deposit', 'fiat_withdrawal', 'order']:
                 row[8] = row[8] + (': %s %s' % (transaction['details']['title'], transaction['details']['subtitle']))
                 if float(transaction['amount']['amount']) < 0:
                     # withdrawal (outgoing funds)
