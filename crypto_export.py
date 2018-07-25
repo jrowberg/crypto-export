@@ -200,7 +200,7 @@ if 'coinbase' in queued_exchanges:
                 buy['id'],
                 'Reference: %s' % buy['user_reference'],
                 'trade',
-                'EOL']
+                'Coinbase']
             coinbase_entries.append(row)
             #pprint.pprint(buy)
             #print(','.join('%s' % x for x in row))
@@ -219,7 +219,7 @@ if 'coinbase' in queued_exchanges:
                 sell['id'],
                 'Reference: %s' % sell['user_reference'],
                 'trade',
-                'EOL']
+                'Coinbase']
             coinbase_entries.append(row)
             #pprint.pprint(sell)
             #print(','.join('%s' % x for x in row))
@@ -227,7 +227,7 @@ if 'coinbase' in queued_exchanges:
         for i, transaction in enumerate(account['transactions']['data']):
             if transaction['status'] in ['canceled']:
                 continue
-            row = [transaction['created_at'], 0, '', 0, '', 0, '', transaction['id'], 'Native %s %s' % (transaction['native_amount']['amount'], transaction['native_amount']['currency']), '', 'EOL']
+            row = [transaction['created_at'], 0, '', 0, '', 0, '', transaction['id'], 'Native %s %s' % (transaction['native_amount']['amount'], transaction['native_amount']['currency']), '', 'Coinbase']
             if transaction['type'] == 'buy':
                 # incoming fiat currency associated with buy transaction
                 row[1] = transaction['native_amount']['amount']
@@ -343,7 +343,7 @@ if 'gdax' in queued_exchanges:
     gdax_entries = []
     for i, fill_page in enumerate(gdax_fills):
         for j, fill in enumerate(fill_page):
-            row = [fill['created_at'], 0, 'XYZ', 0, 'XYZ', fill['fee'], 'XYZ', '%s-%s' % (fill['order_id'], fill['trade_id']), 'USD volume: $%f' % float(fill['usd_volume']), 'trade', 'EOL']
+            row = [fill['created_at'], 0, 'XYZ', 0, 'XYZ', fill['fee'], 'XYZ', '%s-%s' % (fill['order_id'], fill['trade_id']), 'USD volume: $%f' % float(fill['usd_volume']), 'trade', 'GDAX']
             buy_cur, sell_cur = fill['product_id'].split('-')
             row[6] = sell_cur
             if fill['side'] == 'buy':
@@ -367,7 +367,7 @@ if 'gdax' in queued_exchanges:
     for z, account in enumerate(gdax_accounts):
         for i, transaction_page in enumerate(account['history']):
             for j, transaction in enumerate(transaction_page):
-                row = [transaction['created_at'], 0, account['currency'], 0, account['currency'], 0, account['currency'], '', '', '', 'EOL']
+                row = [transaction['created_at'], 0, account['currency'], 0, account['currency'], 0, account['currency'], '', '', '', 'GDAX']
                 if transaction['type'] == 'match':
                     continue
                 elif transaction['type'] == 'fee':
