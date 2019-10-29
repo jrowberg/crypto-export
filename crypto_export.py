@@ -310,6 +310,7 @@ if 'gdax' in queued_exchanges:
 
     print("Creating authenticated GDAX client")
     gdax_auth_client = gdax.AuthenticatedClient(config['gdax']['key'], config['gdax']['secret'], config['gdax']['passphrase'])
+    products = gdax_auth_client.get_products()
 
     if args.local and os.path.isfile('%sgdax_accounts.json' % file_prefix):
         print("Reading GDAX account details from %sgdax_accounts.json" % file_prefix)
@@ -333,8 +334,11 @@ if 'gdax' in queued_exchanges:
         with open('%sgdax_fills.json' % file_prefix, 'r') as infile:
             gdax_fills = json.load(infile)
     else:
+        gdax_fills = []
         print("Getting GDAX order fill history via API")
-        gdax_fills = gdax_auth_client.get_fills()
+        for product in products:
+            print("Requesting fills for product", product["id"])
+            gdax_fills = gdax_fills + gdax_auth_client.get_fills(product_id=product["id"])
 
         print("Storing fill history in %sgdax_fills.json" % file_prefix)
         with open('%sgdax_fills.json' % file_prefix, 'w') as outfile:
