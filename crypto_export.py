@@ -32,7 +32,7 @@
 #
 # Fix for winrandom problem with WinPython 3.5 64bit: https://stackoverflow.com/a/39478958/2863900
 
-import argparse, configparser, os, sys, re, json
+import argparse, configparser, os, sys, re, json, itertools
 import pprint
 
 supported_exchanges = ['coinbase', 'coinbase-pro', 'novadax']
@@ -413,13 +413,38 @@ if 'novadax' in queued_exchanges:
 
     nova_accounts_filename = '%snova_accounts.json' % file_prefix
     if args.local and os.path.isfile(nova_accounts_filename):
-        print("Reading NovaDAX account balance from " + nova_accounts_filename)
+        print("Reading NovaDAX account balance from", nova_accounts_filename)
         with open(nova_accounts_filename, 'r') as infile:
             nova_accounts = json.load(infile)
     else:
         print("Getting NovaDAX account balance via API")
         nova_accounts = nova_client.get_account_balance()['data']
 
-        print("Storing account balance in " + nova_accounts_filename)
+        print("Storing account balance in", nova_accounts_filename)
         with open(nova_accounts_filename, 'w') as outfile:
             json.dump(nova_accounts, outfile)
+
+
+    nova_fills_filename = '%snova_fills.json' % file_prefix
+    if args.local and os.path.isfile(nova_fills_filename):
+        print("Reading NovaDAX fill details from", nova_fills_filename)
+        with open(nova_fills_filename, 'r') as infile:
+            nova_fills = json.load(infile)
+    else:
+        nova_fills = []
+        print("Getting NovaDAX order fill history via API")
+
+        page_size = 50
+        last_id = None
+        for i in itertools.count(1):
+            print("Requesting page #%d of NovaDAX fills" % i)
+            page = nova_client.list_order_fills(limit=page_size, to_id=last_id)['data']
+
+            nova_fills += page
+            if len(page) < page_size:
+                break
+            last_id = page[-1]['id']
+
+        print("Storing total (%d) fill history in %s" % (len(nova_fills), nova_fills_filename))
+        with open(nova_fills_filename, 'w') as outfile:
+            json.dump(nova_fills, outfile)
