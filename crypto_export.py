@@ -303,13 +303,13 @@ if 'coinbase' in queued_exchanges:
 
 # GDAX EXPORT
 if 'gdax' in queued_exchanges:
-    import gdax
+    import cbpro
     if not set(['passphrase', 'key', 'secret']).issubset(set(config['gdax'])):
         print("GDAX configuration requires 'passphrase', 'key', and 'secret' values")
         sys.exit(3)
 
     print("Creating authenticated GDAX client")
-    gdax_auth_client = gdax.AuthenticatedClient(config['gdax']['key'], config['gdax']['secret'], config['gdax']['passphrase'])
+    gdax_auth_client = cbpro.AuthenticatedClient(config['gdax']['key'], config['gdax']['secret'], config['gdax']['passphrase'])
     products = gdax_auth_client.get_products()
 
     if args.local and os.path.isfile('%sgdax_accounts.json' % file_prefix):
@@ -323,7 +323,7 @@ if 'gdax' in queued_exchanges:
         print("- GDAX profile %s" % (gdax_accounts[0]['profile_id']))
         for i, account in enumerate(gdax_accounts):
             print("- #%d %s: %0.16f %s available (%0.16f %s on hold), getting account history via API" % (i, account['id'], float(account['available']), account['currency'], float(account['hold']), account['currency']))
-            gdax_accounts[i]['history'] = gdax_auth_client.get_account_history(account['id'])
+            gdax_accounts[i]['history'] = list(gdax_auth_client.get_account_history(account['id']))
 
         print("Storing account history in %sgdax_accounts.json" % file_prefix)
         with open('%sgdax_accounts.json' % file_prefix, 'w') as outfile:
@@ -338,59 +338,57 @@ if 'gdax' in queued_exchanges:
         print("Getting GDAX order fill history via API")
         for product in products:
             print("Requesting fills for product", product["id"])
-            gdax_fills = gdax_fills + gdax_auth_client.get_fills(product_id=product["id"])
+            gdax_fills = gdax_fills + list(gdax_auth_client.get_fills(product_id=product["id"]))
 
         print("Storing fill history in %sgdax_fills.json" % file_prefix)
         with open('%sgdax_fills.json' % file_prefix, 'w') as outfile:
             json.dump(gdax_fills, outfile)
 
     gdax_entries = []
-    for i, fill_page in enumerate(gdax_fills):
-        for j, fill in enumerate(fill_page):
-            row = [fill['created_at'], 0, 'XYZ', 0, 'XYZ', fill['fee'], 'XYZ', '%s-%s' % (fill['order_id'], fill['trade_id']), 'USD volume: $%f' % float(fill['usd_volume']), 'trade', 'GDAX']
-            buy_cur, sell_cur = fill['product_id'].split('-')
-            row[6] = sell_cur
-            if fill['side'] == 'buy':
-                row[1] = fill['size']
-                row[2] = buy_cur
-                row[3] = '%0.8f' % ((float(fill['size']) * float(fill['price'])) + float(fill['fee']))
-                row[4] = sell_cur
-            else:
-                row[1] = '%0.8f' % ((float(fill['size']) * float(fill['price'])) - float(fill['fee']))
-                row[2] = sell_cur
-                row[3] = fill['size']
-                row[4] = buy_cur
+    for i, fill in enumerate(gdax_fills):
+        row = [fill['created_at'], 0, 'XYZ', 0, 'XYZ', fill['fee'], 'XYZ', '%s-%s' % (fill['order_id'], fill['trade_id']), 'USD volume: $%f' % float(fill['usd_volume']), 'trade', 'GDAX']
+        buy_cur, sell_cur = fill['product_id'].split('-')
+        row[6] = sell_cur
+        if fill['side'] == 'buy':
+            row[1] = fill['size']
+            row[2] = buy_cur
+            row[3] = '%0.8f' % ((float(fill['size']) * float(fill['price'])) + float(fill['fee']))
+            row[4] = sell_cur
+        else:
+            row[1] = '%0.8f' % ((float(fill['size']) * float(fill['price'])) - float(fill['fee']))
+            row[2] = sell_cur
+            row[3] = fill['size']
+            row[4] = buy_cur
 
-            gdax_entries.append(row)
-            #pprint.pprint(fill)
-            #print(','.join('%s' % x for x in row))
+        gdax_entries.append(row)
+        #pprint.pprint(fill)
+        #print(','.join('%s' % x for x in row))
 
     gdax_fills_count = len(gdax_entries)
     print("- Processed %d order fills for all accounts" % gdax_fills_count)
 
     for z, account in enumerate(gdax_accounts):
-        for i, transaction_page in enumerate(account['history']):
-            for j, transaction in enumerate(transaction_page):
-                row = [transaction['created_at'], 0, account['currency'], 0, account['currency'], 0, account['currency'], '', '', '', 'GDAX']
-                if transaction['type'] == 'match':
-                    continue
-                elif transaction['type'] == 'fee':
-                    continue
-                elif transaction['type'] == 'transfer':
-                    row[7] = '%s' % (transaction['details']['transfer_id'])
-                    if transaction['details']['transfer_type'] == 'deposit':
-                        row[9] = 'deposit'
-                        row[1] = '%0.16f' % float(transaction['amount'])
-                    elif transaction['details']['transfer_type'] == 'withdraw':
-                        row[9] = 'withdrawal'
-                        row[3] = '%0.16f' % -float(transaction['amount'])
-                else:
-                    # unknown transaction type, maybe they changed their API or something
-                    continue
+        for i, transaction in enumerate(account['history']):
+            row = [transaction['created_at'], 0, account['currency'], 0, account['currency'], 0, account['currency'], '', '', '', 'GDAX']
+            if transaction['type'] == 'match':
+                continue
+            elif transaction['type'] == 'fee':
+                continue
+            elif transaction['type'] == 'transfer':
+                row[7] = '%s' % (transaction['details']['transfer_id'])
+                if transaction['details']['transfer_type'] == 'deposit':
+                    row[9] = 'deposit'
+                    row[1] = '%0.16f' % float(transaction['amount'])
+                elif transaction['details']['transfer_type'] == 'withdraw':
+                    row[9] = 'withdrawal'
+                    row[3] = '%0.16f' % -float(transaction['amount'])
+            else:
+                # unknown transaction type, maybe they changed their API or something
+                continue
 
-                gdax_entries.append(row)
-                #pprint.pprint(transaction)
-                #print(','.join('%s' % x for x in row))
+            gdax_entries.append(row)
+            #pprint.pprint(transaction)
+            #print(','.join('%s' % x for x in row))
 
     gdax_transfers_count = len(gdax_entries) - gdax_fills_count
     print("- Processed %d transfers for all accounts" % gdax_transfers_count)
