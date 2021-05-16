@@ -19,7 +19,7 @@
 # ==============================================================================
 # Comprehensive pip module installation for exchange API connectors:
 #
-#   pip install coinbase gdax
+#   pip install coinbase cbp
 #
 # Planned future support (NOT NECESSARY TO INCLUDE THESE YET):
 #
@@ -35,7 +35,7 @@
 import argparse, configparser, os, sys, re, json
 import pprint
 
-supported_exchanges = ['coinbase', 'gdax']
+supported_exchanges = ['coinbase', 'coinbase-pro']
 
 # welcome banner with script version
 print("-------------------------------")
@@ -301,102 +301,100 @@ if 'coinbase' in queued_exchanges:
         for row in sorted(coinbase_entries, key=lambda row: row[0]):
             outfile.write('%s\n' % ','.join(['%s' % x for x in row]))
 
-# GDAX EXPORT
-if 'gdax' in queued_exchanges:
-    import gdax
-    if not set(['passphrase', 'key', 'secret']).issubset(set(config['gdax'])):
-        print("GDAX configuration requires 'passphrase', 'key', and 'secret' values")
+# Coinbase Pro EXPORT
+if 'coinbase-pro' in queued_exchanges:
+    import cbpro
+    if not set(['passphrase', 'key', 'secret']).issubset(set(config['coinbase-pro'])):
+        print("Coinbase Pro configuration requires 'passphrase', 'key', and 'secret' values")
         sys.exit(3)
 
-    print("Creating authenticated GDAX client")
-    gdax_auth_client = gdax.AuthenticatedClient(config['gdax']['key'], config['gdax']['secret'], config['gdax']['passphrase'])
-    products = gdax_auth_client.get_products()
+    print("Creating authenticated Coinbase Pro client")
+    cbp_auth_client = cbpro.AuthenticatedClient(config['coinbase-pro']['key'], config['coinbase-pro']['secret'], config['coinbase-pro']['passphrase'])
+    products = cbp_auth_client.get_products()
 
-    if args.local and os.path.isfile('%sgdax_accounts.json' % file_prefix):
-        print("Reading GDAX account details from %sgdax_accounts.json" % file_prefix)
-        with open('%sgdax_accounts.json' % file_prefix, 'r') as infile:
-            gdax_accounts = json.load(infile)
+    if args.local and os.path.isfile('%scbp_accounts.json' % file_prefix):
+        print("Reading Coinbase Pro account details from %scbp_accounts.json" % file_prefix)
+        with open('%scbp_accounts.json' % file_prefix, 'r') as infile:
+            cbp_accounts = json.load(infile)
     else:
-        print("Getting GDAX account list via API")
-        gdax_accounts = gdax_auth_client.get_accounts()
+        print("Getting Coinbase Pro account list via API")
+        cbp_accounts = cbp_auth_client.get_accounts()
 
-        print("- GDAX profile %s" % (gdax_accounts[0]['profile_id']))
-        for i, account in enumerate(gdax_accounts):
+        print("- Coinbase Pro profile %s" % (cbp_accounts[0]['profile_id']))
+        for i, account in enumerate(cbp_accounts):
             print("- #%d %s: %0.16f %s available (%0.16f %s on hold), getting account history via API" % (i, account['id'], float(account['available']), account['currency'], float(account['hold']), account['currency']))
-            gdax_accounts[i]['history'] = gdax_auth_client.get_account_history(account['id'])
+            cbp_accounts[i]['history'] = list(cbp_auth_client.get_account_history(account['id']))
 
-        print("Storing account history in %sgdax_accounts.json" % file_prefix)
-        with open('%sgdax_accounts.json' % file_prefix, 'w') as outfile:
-            json.dump(gdax_accounts, outfile)
+        print("Storing account history in %scbp_accounts.json" % file_prefix)
+        with open('%scbp_accounts.json' % file_prefix, 'w') as outfile:
+            json.dump(cbp_accounts, outfile)
 
-    if args.local and os.path.isfile('%sgdax_fills.json' % file_prefix):
-        print("Reading GDAX fill details from %sgdax_fills.json" % file_prefix)
-        with open('%sgdax_fills.json' % file_prefix, 'r') as infile:
-            gdax_fills = json.load(infile)
+    if args.local and os.path.isfile('%scbp_fills.json' % file_prefix):
+        print("Reading Coinbase Pro fill details from %scbp_fills.json" % file_prefix)
+        with open('%scbp_fills.json' % file_prefix, 'r') as infile:
+            cbp_fills = json.load(infile)
     else:
-        gdax_fills = []
-        print("Getting GDAX order fill history via API")
+        cbp_fills = []
+        print("Getting Coinbase Pro order fill history via API")
         for product in products:
             print("Requesting fills for product", product["id"])
-            gdax_fills = gdax_fills + gdax_auth_client.get_fills(product_id=product["id"])
+            cbp_fills = cbp_fills + list(cbp_auth_client.get_fills(product_id=product["id"]))
 
-        print("Storing fill history in %sgdax_fills.json" % file_prefix)
-        with open('%sgdax_fills.json' % file_prefix, 'w') as outfile:
-            json.dump(gdax_fills, outfile)
+        print("Storing fill history in %scbp_fills.json" % file_prefix)
+        with open('%scbp_fills.json' % file_prefix, 'w') as outfile:
+            json.dump(cbp_fills, outfile)
 
-    gdax_entries = []
-    for i, fill_page in enumerate(gdax_fills):
-        for j, fill in enumerate(fill_page):
-            row = [fill['created_at'], 0, 'XYZ', 0, 'XYZ', fill['fee'], 'XYZ', '%s-%s' % (fill['order_id'], fill['trade_id']), 'USD volume: $%f' % float(fill['usd_volume']), 'trade', 'GDAX']
-            buy_cur, sell_cur = fill['product_id'].split('-')
-            row[6] = sell_cur
-            if fill['side'] == 'buy':
-                row[1] = fill['size']
-                row[2] = buy_cur
-                row[3] = '%0.8f' % ((float(fill['size']) * float(fill['price'])) + float(fill['fee']))
-                row[4] = sell_cur
+    cbp_entries = []
+    for i, fill in enumerate(cbp_fills):
+        row = [fill['created_at'], 0, 'XYZ', 0, 'XYZ', fill['fee'], 'XYZ', '%s-%s' % (fill['order_id'], fill['trade_id']), 'USD volume: $%f' % float(fill['usd_volume']), 'trade', 'Coinbase Pro']
+        buy_cur, sell_cur = fill['product_id'].split('-')
+        row[6] = sell_cur
+        if fill['side'] == 'buy':
+            row[1] = fill['size']
+            row[2] = buy_cur
+            row[3] = '%0.8f' % ((float(fill['size']) * float(fill['price'])) + float(fill['fee']))
+            row[4] = sell_cur
+        else:
+            row[1] = '%0.8f' % ((float(fill['size']) * float(fill['price'])) - float(fill['fee']))
+            row[2] = sell_cur
+            row[3] = fill['size']
+            row[4] = buy_cur
+
+        cbp_entries.append(row)
+        #pprint.pprint(fill)
+        #print(','.join('%s' % x for x in row))
+
+    cbp_fills_count = len(cbp_entries)
+    print("- Processed %d order fills for all accounts" % cbp_fills_count)
+
+    for z, account in enumerate(cbp_accounts):
+        for i, transaction in enumerate(account['history']):
+            row = [transaction['created_at'], 0, account['currency'], 0, account['currency'], 0, account['currency'], '', '', '', 'Coinbase Pro']
+            if transaction['type'] == 'match':
+                continue
+            elif transaction['type'] == 'fee':
+                continue
+            elif transaction['type'] == 'transfer':
+                row[7] = '%s' % (transaction['details']['transfer_id'])
+                if transaction['details']['transfer_type'] == 'deposit':
+                    row[9] = 'deposit'
+                    row[1] = '%0.16f' % float(transaction['amount'])
+                elif transaction['details']['transfer_type'] == 'withdraw':
+                    row[9] = 'withdrawal'
+                    row[3] = '%0.16f' % -float(transaction['amount'])
             else:
-                row[1] = '%0.8f' % ((float(fill['size']) * float(fill['price'])) - float(fill['fee']))
-                row[2] = sell_cur
-                row[3] = fill['size']
-                row[4] = buy_cur
+                # unknown transaction type, maybe they changed their API or something
+                continue
 
-            gdax_entries.append(row)
-            #pprint.pprint(fill)
+            cbp_entries.append(row)
+            #pprint.pprint(transaction)
             #print(','.join('%s' % x for x in row))
 
-    gdax_fills_count = len(gdax_entries)
-    print("- Processed %d order fills for all accounts" % gdax_fills_count)
+    cbp_transfers_count = len(cbp_entries) - cbp_fills_count
+    print("- Processed %d transfers for all accounts" % cbp_transfers_count)
+    print("- Total of %d records obtained from Coinbase Pro" % len(cbp_entries))
 
-    for z, account in enumerate(gdax_accounts):
-        for i, transaction_page in enumerate(account['history']):
-            for j, transaction in enumerate(transaction_page):
-                row = [transaction['created_at'], 0, account['currency'], 0, account['currency'], 0, account['currency'], '', '', '', 'GDAX']
-                if transaction['type'] == 'match':
-                    continue
-                elif transaction['type'] == 'fee':
-                    continue
-                elif transaction['type'] == 'transfer':
-                    row[7] = '%s' % (transaction['details']['transfer_id'])
-                    if transaction['details']['transfer_type'] == 'deposit':
-                        row[9] = 'deposit'
-                        row[1] = '%0.16f' % float(transaction['amount'])
-                    elif transaction['details']['transfer_type'] == 'withdraw':
-                        row[9] = 'withdrawal'
-                        row[3] = '%0.16f' % -float(transaction['amount'])
-                else:
-                    # unknown transaction type, maybe they changed their API or something
-                    continue
-
-                gdax_entries.append(row)
-                #pprint.pprint(transaction)
-                #print(','.join('%s' % x for x in row))
-
-    gdax_transfers_count = len(gdax_entries) - gdax_fills_count
-    print("- Processed %d transfers for all accounts" % gdax_transfers_count)
-    print("- Total of %d records obtained from GDAX" % len(gdax_entries))
-
-    with open('%sgdax_transactions.csv' % file_prefix, 'w') as outfile:
+    with open('%scbp_transactions.csv' % file_prefix, 'w') as outfile:
         outfile.write('Trade date,Buy amount,Buy currency,Sell amount,Sell currency,Fee amount,Fee currency,Trade ID,Comment,Type\n')
-        for row in sorted(gdax_entries, key=lambda row: row[0]):
+        for row in sorted(cbp_entries, key=lambda row: row[0]):
             outfile.write('%s\n' % ','.join(['%s' % x for x in row]))
