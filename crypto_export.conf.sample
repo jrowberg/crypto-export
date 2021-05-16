@@ -5,7 +5,7 @@ prefix = mypf_
 key = COINBASE_API_KEY
 secret = COINBASE_API_SECRET
 
-[gdax]
-passphrase = GDAX_API_PASSPHRASE
-key = GDAX_API_KEY
-secret = GDAX_API_SECRET
+[coinbase-pro]
+passphrase = COINBASE_PRO_API_PASSPHRASE
+key = COINBASE_PRO_API_KEY
+secret = COINBASE_PRO_API_SECRET

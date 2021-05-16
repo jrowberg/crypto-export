@@ -4,9 +4,9 @@ This script is a simple tool to export detailed exchange transactions (deposits,
 
 https://cointracking.info?ref=J533603
 
-CoinTracking is a phenomenal tool which I use daily, but it has some odd quirks when it comes to exchange imports--not to mention the fact that API-based imports require a paid account with them. No hard feelings on that front, and I actually have a paid account, but I've found the API imports lacking when they really don't need to be. For example, Coinbase and GDAX provide API-based methods to get all the data you could ever want, but CoinTracking doesn't seem to use it all. Alas.
+CoinTracking is a phenomenal tool which I use daily, but it has some odd quirks when it comes to exchange imports--not to mention the fact that API-based imports require a paid account with them. No hard feelings on that front, and I actually have a paid account, but I've found the API imports lacking when they really don't need to be. For example, Coinbase and Coinbase Pro provide API-based methods to get all the data you could ever want, but CoinTracking doesn't seem to use it all. Alas.
 
-Furthermore, the CSV exports from many exchanges (when they are available at all) often leave out important information, or format the data very strangely, or take a ridiculous amount of effort to accomplish. YES, I'M LOOKING AT YOU, GDAX. Seriously, Like 50 clicks and 10 emails just to get all of the CSV data for a common variety of trading pair transactions? Ugh.
+Furthermore, the CSV exports from many exchanges (when they are available at all) often leave out important information, or format the data very strangely, or take a ridiculous amount of effort to accomplish. YES, I'M LOOKING AT YOU, COINBASE PRO. Seriously, Like 50 clicks and 10 emails just to get all of the CSV data for a common variety of trading pair transactions? Ugh.
 
 However, it's not hard to work around these limitations by writing a "bridge" script, so that's what I've done. As a bonus, you can use the CSV data that this script exports in any way you choose, even if you don't use CoinTracking at all. It gives you an easy way to gather transaction details from multiple sources into a collection of files that all have exactly the same format, readable in Excel or Python or anything else that can handle comma-separated values.
 
@@ -15,7 +15,7 @@ However, it's not hard to work around these limitations by writing a "bridge" sc
 Read the sections below for detail, but if you're familiar with Python, modules, APIs, etc., here's the high-level overview:
 
 1. Install Python (I use [WinPython 3.6](https://winpython.github.io/))
-2. Install the `coinbase` and `gdax` modules using `pip install`
+2. Install the `coinbase` and `cbp` modules using `pip install`
 3. Clone/download the `crypto_export.py` script from this repo
 4. Modify and rename the `crypto_export.conf.sample` file with your API credentials
 5. Run `python crypto_export.py` to perform the export
@@ -39,13 +39,13 @@ However, you do need a couple of 3rd-party Python libraries for exchange API com
 
 1. Navigate to the installation folder that you chose, e.g. `C:\Python\WinPython-64bit-3.5.4.1Qt5`
 2. Run the `WinPython Command Prompt.exe` application to enter the command line environment
-3. Type `pip install coinbase gdax` to install the libraries from official sources
+3. Type `pip install coinbase cbp` to install the libraries from official sources
 
 Now you're all set. The export script will be able to use those libraries when you run it.
 
 # Configuration
 
-To use the script, you first need to supply API credentials in a configuration file for the exchange(s) that you want to use. At the moment, the only supported exchanges are Coinbase and GDAX. Configuration is done using an INI-like format that is pretty self-explanatory. You can refer to the `crypto_export.conf.sample` file for reference, but here's what it looks like:
+To use the script, you first need to supply API credentials in a configuration file for the exchange(s) that you want to use. At the moment, the only supported exchanges are Coinbase and Coinbase Pro. Configuration is done using an INI-like format that is pretty self-explanatory. You can refer to the `crypto_export.conf.sample` file for reference, but here's what it looks like:
 
 ```
 [files]
@@ -55,10 +55,10 @@ prefix = mypf_
 key = COINBASE_API_KEY
 secret = COINBASE_API_SECRET
 
-[gdax]
-passphrase = GDAX_API_PASSPHRASE
-key = GDAX_API_KEY
-secret = GDAX_API_SECRET
+[Coinbase Pro]
+passphrase = Coinbase Pro_API_PASSPHRASE
+key = Coinbase Pro_API_KEY
+secret = Coinbase Pro_API_SECRET
 ```
 
 All of these sections and configuration items are optional, strictly speaking, but generally you will need to define all of the values for any exchange that you want to use.
@@ -67,7 +67,7 @@ All of these sections and configuration items are optional, strictly speaking, b
 
 #### [files]
 
-The `[files]` section supports a single `prefix` key which controls the filename prefix used for any generated cache or output CSV files. This is handy if you use the same script with multiple configuration files to track more than one portfolio, using different API credentials. With the example value of `mypf_`, output files will be named `mypf_gdax_fills.json`, `mypf_gdax_transactions.csv`, etc. If you omit this section, then you will simply get files like `gdax_fills.json` and `gdax_transactions.csv`.
+The `[files]` section supports a single `prefix` key which controls the filename prefix used for any generated cache or output CSV files. This is handy if you use the same script with multiple configuration files to track more than one portfolio, using different API credentials. With the example value of `mypf_`, output files will be named `mypf_Coinbase Pro_fills.json`, `mypf_Coinbase Pro_transactions.csv`, etc. If you omit this section, then you will simply get files like `Coinbase Pro_fills.json` and `Coinbase Pro_transactions.csv`.
 
 #### [coinbase]
 
@@ -75,11 +75,11 @@ For Coinbase support, you need to supply the API key and secret values. You shou
 
 ![Coinbase API key creation](https://raw.githubusercontent.com/jrowberg/crypto-export/master/screenshots/coinbase_api_key_read_only.png)
 
-#### [gdax]
+#### [Coinbase Pro]
 
-For GDAX support, you need to supply the API passphrase, key, and secret values. As with Coinbase, **do not grant anything other than VIEW permissions for this key since nothing else is needed.** You can create a new key under the **API** area of your GDAX account (icon/menu in the upper right corner of the website after logging in).
+For Coinbase Pro support, you need to supply the API passphrase, key, and secret values. As with Coinbase, **do not grant anything other than VIEW permissions for this key since nothing else is needed.** You can create a new key under the **API** area of your Coinbase Pro account (icon/menu in the upper right corner of the website after logging in).
 
-![GDAX API key creation](https://raw.githubusercontent.com/jrowberg/crypto-export/master/screenshots/gdax_api_key_read_only.png)
+![Coinbase Pro API key creation](https://raw.githubusercontent.com/jrowberg/crypto-export/master/screenshots/Coinbase Pro_api_key_read_only.png)
 
 # Usage
 
@@ -110,19 +110,19 @@ optional arguments:
   -l, --local           Use locally stored cache files if present
 ```
 
-Most likely, you won't need any of the command line options unless you are using multiple configuration files for more than one portfolio. However, if you only want or need to export data from a subset of defined exchanges, you can either whitelist (include) or blacklist (exclude) specific exchanges. Currently supported options here are `coinbase` and `gdax`. Here is part of an example run output from real accounts:
+Most likely, you won't need any of the command line options unless you are using multiple configuration files for more than one portfolio. However, if you only want or need to export data from a subset of defined exchanges, you can either whitelist (include) or blacklist (exclude) specific exchanges. Currently supported options here are `coinbase` and `Coinbase Pro`. Here is part of an example run output from real accounts:
 
 ![Running export](https://raw.githubusercontent.com/jrowberg/crypto-export/master/screenshots/running_export.png)
 
 If you **include** any exchanges, then anything *not* in the list will be excluded by default. If you **exclude** any exchanges, then the script will export from anything defined in the configuration file *except* what you specify for that option.
 
-For example, assume the common use case of having both `[coinbase]` and `[gdax]` sections defined in the configuration file, but you only need to update Coinbase since a recurring auto-buy just triggered. In this case, you could use the following command:
+For example, assume the common use case of having both `[coinbase]` and `[Coinbase Pro]` sections defined in the configuration file, but you only need to update Coinbase since a recurring auto-buy just triggered. In this case, you could use the following command:
 
 ```
 python crypto_export.py -i coinbase
 ```
 
-This would skip GDAX and only pull the latest Coinbase data.
+This would skip Coinbase Pro and only pull the latest Coinbase data.
 
 # Limitations
 
@@ -148,7 +148,7 @@ Modify the import settings as follows:
 2. Set `Fee currency` to "Column 7"
 3. Set `Trade ID` to "Column 8"
 4. Set `Comment` to "Column 9"
-5. Set `Set Exchange` to whatever you are currently importing (e.g. "Coinbase" or "GDAX")
+5. Set `Set Exchange` to whatever you are currently importing (e.g. "Coinbase" or "Coinbase Pro")
 6. Set `Parameter 1` as: `Declare as Deposit` if `Column 10` `is exactly (=)` `deposit`
 7. Set `Parameter 2` as: `Declare as Withdrawal` if `Column 10` `is exactly (=)` `withdrawal`
 
