@@ -484,18 +484,16 @@ if 'novadax' in queued_exchanges:
 
         row = [timestamp, 0, 'ABC', 0, 'XYZ', fee, fee_cur, trade_id, 'Role: ' + fill['role'], 'trade', 'NovaDAX']
 
-        target_cur, base_cur = fill['symbol'].split('_')
-        fee, amount, price = float(fee), float(fill['amount']), float(fill['price'])
-        base_amount = amount * price
+        base_cur, quote_cur = fill['symbol'].split('_')
+        fee, base_amount, price = float(fee), float(fill['amount']), float(fill['price'])
+        quote_amount = base_amount * price
 
         if fill['side'] == 'BUY':
-            sent_cur, recv_cur = base_cur, target_cur
-            sent_amount = base_amount + (fee if fee_cur == base_cur else 0)
-            recv_amount = amount - (0 if fee_cur == base_cur else fee)
+            sent_cur, sent_amount = quote_cur, quote_amount + (fee if fee_cur == quote_cur else 0)
+            recv_cur, recv_amount = base_cur, base_amount - (fee if fee_cur == base_cur else 0)
         else:
-            sent_cur, recv_cur = target_cur, base_cur
-            sent_amount = amount
-            recv_amount = base_amount - fee * (1 if fee_cur == base_cur else price)
+            sent_cur, sent_amount = base_cur, base_amount + (fee if fee_cur == base_cur else 0)
+            recv_cur, recv_amount = quote_cur, quote_amount - (fee if fee_cur == quote_cur else 0)
 
         row[1:5] = '%0.16f' % recv_amount, recv_cur, '%0.16f' % sent_amount, sent_cur
 
