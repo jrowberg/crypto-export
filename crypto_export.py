@@ -34,6 +34,7 @@
 
 import argparse, configparser, os, sys, re, json, itertools
 import pprint
+from datetime import date, datetime
 
 supported_exchanges = ['coinbase', 'coinbase-pro', 'novadax']
 
@@ -448,3 +449,39 @@ if 'novadax' in queued_exchanges:
         print("Storing total (%d) fill history in %s" % (len(nova_fills), nova_fills_filename))
         with open(nova_fills_filename, 'w') as outfile:
             json.dump(nova_fills, outfile)
+
+    nova_entries = []
+    for fill in nova_fills:
+        timestamp = datetime.fromtimestamp(float(fill['timestamp'])/1000).strftime('%m/%d/%Y %H:%M:%S')
+        trade_id = '%s-%s' % (fill['id'], fill['orderId'])
+        fee, fee_cur = fill['feeAmount'], fill['feeCurrency']
+
+        row = [timestamp, 0, 'ABC', 0, 'XYZ', fee, fee_cur, trade_id, 'Role: ' + fill['role'], 'trade', 'NovaDAX']
+
+        target_cur, base_cur = fill['symbol'].split('_')
+        fee, amount, price = float(fee), float(fill['amount']), float(fill['price'])
+        base_amount = amount * price
+
+        if fill['side'] == 'BUY':
+            sent_cur, recv_cur = base_cur, target_cur
+            sent_amount = base_amount + (fee if fee_cur == base_cur else 0)
+            recv_amount = amount - (0 if fee_cur == base_cur else fee)
+        else:
+            sent_cur, recv_cur = target_cur, base_cur
+            sent_amount = amount
+            recv_amount = base_amount - fee * (1 if fee_cur == base_cur else price)
+
+        row[1:5] = '%0.8f' % recv_amount, recv_cur, '%0.8f' % sent_amount, sent_cur
+
+        nova_entries.append(row)
+        # pprint.pprint(fill)
+        # print(','.join('%s' % x for x in row))
+
+    nova_fills_count = len(nova_entries)
+    print("- Processed %d order fills for all accounts" % nova_fills_count)
+
+    nova_txs_filename = '%snova_transactions.csv' % file_prefix
+    with open(nova_txs_filename, 'w') as outfile:
+        outfile.write('Trade date,Buy amount,Buy currency,Sell amount,Sell currency,Fee amount,Fee currency,Trade ID,Comment,Type\n')
+        for row in sorted(nova_entries, key=lambda row: row[0]):
+            outfile.write('%s\n' % ','.join(['%s' % x for x in row]))
