@@ -35,7 +35,7 @@
 import argparse, configparser, os, sys, re, json
 import pprint
 
-supported_exchanges = ['coinbase', 'coinbase-pro']
+supported_exchanges = ['coinbase', 'coinbase-pro', 'novadax']
 
 # welcome banner with script version
 print("-------------------------------")
@@ -398,3 +398,28 @@ if 'coinbase-pro' in queued_exchanges:
         outfile.write('Trade date,Buy amount,Buy currency,Sell amount,Sell currency,Fee amount,Fee currency,Trade ID,Comment,Type\n')
         for row in sorted(cbp_entries, key=lambda row: row[0]):
             outfile.write('%s\n' % ','.join(['%s' % x for x in row]))
+
+# NovaDAX EXPORT
+if 'novadax' in queued_exchanges:
+    from novadax import RequestClient as NovaClient
+
+    nova_conf = config['novadax']
+    if not set(['access_key', 'secret_key']).issubset(set(nova_conf)):
+        print("NovaDAX configuration requires 'access_key', 'secret_key' values")
+        sys.exit(3)
+
+    print("Creating authenticated NovaDAX client")
+    nova_client = NovaClient(nova_conf['access_key'], nova_conf['secret_key'])
+
+    nova_accounts_filename = '%snova_accounts.json' % file_prefix
+    if args.local and os.path.isfile(nova_accounts_filename):
+        print("Reading NovaDAX account balance from " + nova_accounts_filename)
+        with open(nova_accounts_filename, 'r') as infile:
+            nova_accounts = json.load(infile)
+    else:
+        print("Getting NovaDAX account balance via API")
+        nova_accounts = nova_client.get_account_balance()['data']
+
+        print("Storing account balance in " + nova_accounts_filename)
+        with open(nova_accounts_filename, 'w') as outfile:
+            json.dump(nova_accounts, outfile)
