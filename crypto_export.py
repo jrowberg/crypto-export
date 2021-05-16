@@ -412,19 +412,45 @@ if 'novadax' in queued_exchanges:
     print("Creating authenticated NovaDAX client")
     nova_client = NovaClient(nova_conf['access_key'], nova_conf['secret_key'])
 
-    nova_accounts_filename = '%snova_accounts.json' % file_prefix
-    if args.local and os.path.isfile(nova_accounts_filename):
-        print("Reading NovaDAX account balance from", nova_accounts_filename)
-        with open(nova_accounts_filename, 'r') as infile:
+    nova_balance_filename = '%snova_balance.json' % file_prefix
+    if args.local and os.path.isfile(nova_balance_filename):
+        print("Reading NovaDAX account balance from", nova_balance_filename)
+        with open(nova_balance_filename, 'r') as infile:
             nova_accounts = json.load(infile)
     else:
         print("Getting NovaDAX account balance via API")
         nova_accounts = nova_client.get_account_balance()['data']
 
-        print("Storing account balance in", nova_accounts_filename)
-        with open(nova_accounts_filename, 'w') as outfile:
+        print("Storing account balance in", nova_balance_filename)
+        with open(nova_balance_filename, 'w') as outfile:
             json.dump(nova_accounts, outfile)
 
+    nova_wallet_filename = '%snova_wallet_history.json' % file_prefix
+    if args.local and os.path.isfile(nova_wallet_filename):
+        print("Reading NovaDAX wallet history from", nova_wallet_filename)
+        with open(nova_wallet_filename, 'r') as infile:
+            nova_wallet_hist = json.load(infile)
+    else:
+        nova_wallet_hist = []
+        print("Getting NovaDAX wallet history via API")
+
+        page_size = 10
+        last_id = None
+        for i in itertools.count(1):
+            print("Requesting page #%d of NovaDAX wallet history" % i)
+            page = nova_client._client.get_with_auth('/v1/wallet/query/deposit-withdraw', {
+                'size': page_size,
+                'start': last_id
+            })['data']
+
+            nova_wallet_hist += page if len(page) == 0 or page[0]['id'] != last_id else page[1:]
+            if len(page) < page_size:
+                break
+            last_id = page[-1]['id']
+
+        print("Storing wallet history in", nova_wallet_filename)
+        with open(nova_wallet_filename, 'w') as outfile:
+            json.dump(nova_wallet_hist, outfile)
 
     nova_fills_filename = '%snova_fills.json' % file_prefix
     if args.local and os.path.isfile(nova_fills_filename):
