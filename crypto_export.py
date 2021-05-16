@@ -478,7 +478,7 @@ if 'novadax' in queued_exchanges:
 
     nova_entries = []
     for fill in nova_fills:
-        timestamp = datetime.fromtimestamp(float(fill['timestamp'])/1000).strftime('%m/%d/%Y %H:%M:%S')
+        timestamp = datetime.utcfromtimestamp(float(fill['timestamp']) / 1000).strftime('%m/%d/%Y %H:%M:%S')
         trade_id = '%s-%s' % (fill['id'], fill['orderId'])
         fee, fee_cur = fill['feeAmount'], fill['feeCurrency']
 
@@ -497,14 +497,49 @@ if 'novadax' in queued_exchanges:
             sent_amount = amount
             recv_amount = base_amount - fee * (1 if fee_cur == base_cur else price)
 
-        row[1:5] = '%0.8f' % recv_amount, recv_cur, '%0.8f' % sent_amount, sent_cur
+        row[1:5] = '%0.16f' % recv_amount, recv_cur, '%0.16f' % sent_amount, sent_cur
 
         nova_entries.append(row)
         # pprint.pprint(fill)
         # print(','.join('%s' % x for x in row))
 
     nova_fills_count = len(nova_entries)
-    print("- Processed %d order fills for all accounts" % nova_fills_count)
+    print("- Processed %d order fills in NovaDAX account" % nova_fills_count)
+
+    withdrawal_fee = {
+        'BTC': 0.0004,
+        'ETH': 0.008,
+        'BCH': 0.0001,
+        'XMR': 0.01
+    }
+    for transfer in nova_wallet_hist:
+        timestamp = datetime.utcfromtimestamp(float(transfer['createdAt']) / 1000).strftime('%m/%d/%Y %H:%M:%S')
+        currency = transfer['currency']
+        row = [timestamp, 0, currency, 0, currency, 0, currency, transfer['id'], 'TX Hash: ' + transfer['txHash'], 'transfer', 'NovaDAX']
+
+        if transfer['state'] != 'SUCCESS':
+            continue
+
+        ttype = transfer['type']
+        amount = transfer['amount']
+        if ttype == 'COIN_IN':
+            row[9] = 'deposit'
+            row[1:3] = amount, currency
+        elif ttype == 'COIN_OUT':
+            row[9] = 'withdrawal'
+            row[3:5] = amount, currency
+            row[5:7] = withdrawal_fee[currency], currency
+        else:
+            # Unknown type
+            continue
+
+        nova_entries.append(row)
+        # pprint.pprint(transfer)
+        # print(','.join('%s' % x for x in row))
+
+    nova_transfers_count = len(nova_entries) - nova_fills_count
+    print("- Processed %d transfers in NovaDAX account" % nova_transfers_count)
+    print("- Total of %d records obtained from NovaDAX" % len(nova_entries))
 
     nova_txs_filename = '%snova_transactions.csv' % file_prefix
     with open(nova_txs_filename, 'w') as outfile:
